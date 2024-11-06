@@ -1,0 +1,74 @@
+/* Timeline Styles */
+.timeline {
+    position: relative;
+    padding: var(--spacing-md) 0;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+/* Timeline track */
+.timeline-track {
+    position: relative;
+    height: 80px;
+    margin: var(--spacing-lg) 0;
+    border-bottom: 2px solid var(--color-accent);
+}
+
+/* Event styles */
+.timeline-event {
+    position: absolute;
+    bottom: 0;
+    transform: translateX(-50%);
+    text-align: center;
+    min-width: 60px;
+}
+
+/* Event states */
+.event-past {
+    opacity: 0.6;
+    filter: grayscale(100%);
+}
+
+.event-active {
+    transform: translateX(-50%) scale(1.2);
+    font-weight: bold;
+}
+
+.event-future {
+    transform: translateX(-50%) scale(0.9);
+}
+
+/* Event components */
+.event-emoji {
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.event-time {
+    font-size: 0.8rem;
+    color: var(--color-text-light);
+}
+
+.event-name {
+    font-size: 0.9rem;
+}
+
+/* Current time marker */
+.current-time-marker {
+    position: absolute;
+    bottom: -10px;
+    width: 2px;
+    height: 100px;
+    background-color: var(--color-danger);
+    transform: translateX(-50%);
+}
+
+/* Active window display */
+.active-window {
+    text-align: center;
+    padding: var(--spacing-sm);
+    background-color: var(--color-surface);
+    border-radius: 4px;
+    margin-bottom: var(--spacing-md);
+    font-weight: bold;
+}

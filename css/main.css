@@ -1,0 +1,23 @@
+/* Timeline Styles */
+.timeline {
+    position: relative;
+    padding: var(--spacing-md) 0;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+/* Timeline track */
+.timeline-track {
+    position: relative;
+    height: 80px;
+    margin: var(--spacing-lg) 0;
+    border-bottom: 2px solid var(--color-accent);
+}
+
+/* Event styles */
+.timeline-event {
+    position: absolute;
+    bottom: 0;
+    transform: translateX(-50%);
+    text-align: center;
+    min-width: 60px;
