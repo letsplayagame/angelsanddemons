@@ -1,18 +1,255 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Angels and Demons Trading Journal</title>
-  <link rel="manifest" href="manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2c3e50">
+    <title>Trading Journal</title>
+    
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/timeline.css">
+    <link rel="stylesheet" href="css/log.css">
 </head>
 <body>
-    <h1>Angels and Demons Trading Journal</h1>
-    <p>Coming soon...</p>
+    <div class="container">
+        <div class="main-grid">
+            <!-- Timeline Section -->
+            <div class="timeline-panel panel">
+                <div class="active-window"></div>
+                <div class="timeline">
+                    <div class="timeline-track"></div>
+                </div>
+            </div>
+
+            <!-- Score Section -->
+            <div class="score-panel panel">
+                <h2>Session Score</h2>
+                <div class="score-display">
+                    <div id="currentScore" class="text-xlarge font-bold text-center">0</div>
+                    <div id="scoreMessage" class="text-center mt-1"></div>
+                    <div id="sizeRecommendation" class="text-center mt-1 font-bold"></div>
+                </div>
+                <div class="score-actions mt-1">
+                    <button onclick="resetSession()" class="btn">Reset Session</button>
+                    <button onclick="exportSession()" class="btn">Export CSV</button>
+                </div>
+            </div>
+
+            <!-- Actions Section -->
+            <div class="actions-panel panel">
+                <div class="angels-section">
+                    <h3>Angels</h3>
+                    <div class="action-buttons">
+                        <!-- Angels buttons will be inserted here by JavaScript -->
+                    </div>
+                </div>
+                <div class="demons-section mt-1">
+                    <h3>Demons</h3>
+                    <div class="action-buttons">
+                        <!-- Demons buttons will be inserted here by JavaScript -->
+                    </div>
+                </div>
+                <!-- Action Recording Form -->
+                <div id="actionForm" class="action-form" style="display: none;">
+                    <textarea id="actionNotes" placeholder="Add notes (optional)" rows="2"></textarea>
+                    <div class="form-controls">
+                        <label class="luck-toggle">
+                            <input type="checkbox" id="luckToggle">
+                            <span id="luckLabel">Lucky</span>
+                        </label>
+                        <button onclick="submitAction()" class="btn">Add</button>
+                        <button onclick="cancelAction()" class="btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Log Section -->
+            <div class="log-panel panel">
+                <div class="log-header">
+                    <div class="log-stats">
+                        <span>Angels: <span id="angelCount">0</span></span>
+                        <span>Demons: <span id="demonCount">0</span></span>
+                    </div>
+                </div>
+                <div class="log-entries" id="logEntries">
+                    <!-- Log entries will be inserted here by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Service Worker Registration -->
     <script>
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/service-worker.js')
-            .then(registration => console.log('ServiceWorker registration successful'))
-            .catch(err => console.log('ServiceWorker registration failed: ', err));
-    }
-</script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+
+    <script type="module">
+        import Timeline from './js/timeline.js';
+        import Logger from './js/logger.js';
+        import Score from './js/score.js';
+        import Storage from './js/storage.js';
+        import { ANGELS, DEMONS } from './js/constants.js';
+
+        // Initialize components
+        const score = new Score();
+        const logger = new Logger(score);
+        const timeline = new Timeline();
+        const storage = new Storage();
+
+        // Initialize storage
+        storage.initializeLogger(logger);
+        storage.setupAutoSave(logger);
+
+        // Initialize timeline
+        timeline.init();
+
+        // Setup action buttons
+        function setupActionButtons() {
+            const angelsContainer = document.querySelector('.angels-section .action-buttons');
+            const demonsContainer = document.querySelector('.demons-section .action-buttons');
+
+            ANGELS.forEach(angel => {
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-angel';
+                btn.innerHTML = angel.name;
+                btn.onclick = () => showActionForm('angel', angel.id);
+                angelsContainer.appendChild(btn);
+            });
+
+            DEMONS.forEach(demon => {
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-demon';
+                btn.innerHTML = demon.name;
+                btn.onclick = () => showActionForm('demon', demon.id);
+                demonsContainer.appendChild(btn);
+            });
+        }
+
+        // Global variables for current action
+        let currentActionType = null;
+        let currentActionId = null;
+
+        // Action form handlers
+        window.showActionForm = (type, id) => {
+            currentActionType = type;
+            currentActionId = id;
+            const form = document.getElementById('actionForm');
+            const luckToggle = document.getElementById('luckToggle');
+            const luckLabel = document.getElementById('luckLabel');
+            
+            form.style.display = 'block';
+            document.getElementById('actionNotes').value = '';
+            luckToggle.checked = false;
+            luckLabel.textContent = type === 'demon' ? 'Lucky' : 'Unlucky';
+        };
+
+        window.submitAction = () => {
+            const notes = document.getElementById('actionNotes').value;
+            const isLucky = document.getElementById('luckToggle').checked;
+            
+            let status;
+            if (currentActionType === 'angel') {
+                status = logger.recordAngel(currentActionId, notes, isLucky);
+            } else {
+                status = logger.recordDemon(currentActionId, notes, isLucky);
+            }
+
+            if (status) {
+                updateDisplay();
+            }
+
+            document.getElementById('actionForm').style.display = 'none';
+        };
+
+        window.cancelAction = () => {
+            document.getElementById('actionForm').style.display = 'none';
+        };
+
+        // Display updaters
+        function updateDisplay() {
+            updateScore();
+            updateLog();
+            updateCounts();
+        }
+
+        function updateScore() {
+            const status = score.getStatusUpdate();
+            document.getElementById('currentScore').textContent = status.score;
+            document.getElementById('currentScore').style.color = status.color;
+            document.getElementById('scoreMessage').textContent = status.message;
+            document.getElementById('sizeRecommendation').textContent = status.sizing;
+            document.getElementById('sizeRecommendation').style.color = status.color;
+        }
+
+        function updateLog() {
+            const entries = logger.getEntries();
+            const logContainer = document.getElementById('logEntries');
+            
+            logContainer.innerHTML = entries.map(entry => `
+                <div class="log-entry entry-${entry.type}">
+                    <div class="entry-timestamp">${entry.timestamp}</div>
+                    <div class="entry-action">${entry.action.name}</div>
+                    <div class="entry-notes">${entry.notes}</div>
+                    <div class="entry-luck">
+                        ${entry.isLucky || entry.isUnlucky ? '✨' : ''}
+                    </div>
+                    <button onclick="deleteLogEntry(${entry.index})" class="btn">❌</button>
+                </div>
+            `).join('');
+        }
+
+        function updateCounts() {
+            const counts = logger.getCounts();
+            document.getElementById('angelCount').textContent = counts.angels;
+            document.getElementById('demonCount').textContent = counts.demons;
+        }
+
+        // Global functions
+        window.deleteLogEntry = (index) => {
+            if (logger.deleteEntry(index)) {
+                updateDisplay();
+            }
+        };
+
+        window.resetSession = () => {
+            if (confirm('Are you sure you want to reset the session?')) {
+                logger.resetSession();
+                storage.clearSession();
+                updateDisplay();
+            }
+        };
+
+        window.exportSession = () => {
+            const csv = logger.exportToCSV();
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `trading_journal_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        };
+
+        // Initial setup
+        setupActionButtons();
+        updateDisplay();
+    </script>
 </body>
 </html>
